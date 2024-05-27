@@ -70,4 +70,10 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
       }
     }
   }
+
+  @ReactMethod
+  fun setDefaultCameraVendorId(viewTag: Int, vendorId: Int) {
+    val view = findCameraView(viewTag)
+    view.setVendorId(vendorId)
+  }
 }

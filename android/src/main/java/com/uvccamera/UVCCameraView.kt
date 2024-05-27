@@ -97,6 +97,24 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         if(mCameraHelper!=null){
           try{
             mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setRotation(180%360);
+
+            if (deviceList != null && deviceList.isNotEmpty()) {
+                var deviceToSelect: UsbDevice = deviceList[0]
+                for (device in deviceList) {
+                    val defaultCameraVendorId = sharedPref.getInt("defaultCameraVendorId", 3034)
+                    if (device.vendorId == defaultCameraVendorId) {
+                        deviceToSelect = device
+                        break
+                    }
+                }
+                if (deviceToSelect == null) {
+                    // No device with vendor ID 3034 found, select the first available device
+                    deviceToSelect = deviceList[0]
+
+                }
+                Toast.makeText(reactContext, "Camera selected: ${deviceToSelect.deviceName} , Vendor ID: ${deviceToSelect.vendorId}", Toast.LENGTH_SHORT).show();
+                selectDevice(deviceToSelect)
+            }
           } catch(e:Exception){
             Toast.makeText(reactContext, "rotate camera error: $width, $height", Toast.LENGTH_SHORT).show()
           }
@@ -109,14 +127,14 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
     //   if (DEBUG) Log.v(TAG, "onCameraOpen:")
     //   mCameraHelper?.run {
     //     mCameraViewMain.setRotation(180f)
-       
+
     //     val portraitSizeList = ArrayList<Size>()
     //     for (size in supportedSizeList) {
     //       // if (size.width < size.height) {
     //         portraitSizeList.add(size)
     //       // }
     //     }
-       
+
     //     Log.d(TAG, "portraitSizeList: $portraitSizeList")
     //     val size = portraitSizeList[0]
     //     mCameraViewMain.setAspectRatio(size.width, size.height)
@@ -125,7 +143,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
     //     startPreview()
 
     //     addSurface(mCameraViewMain.holder.surface, false)
-    
+
     //      val videoCaptureConfig = getVideoCaptureConfig()
 
     //     if (videoCaptureConfig != null) {
@@ -223,7 +241,7 @@ fun updateAspectRatio(width: Int, height: Int) {
     }
 
 }
- 
+
   fun closeCamera() {
     mCameraHelper?.closeCamera()
   }
@@ -246,6 +264,15 @@ fun updateAspectRatio(width: Int, height: Int) {
     } catch(e:Exception){
       Toast.makeText(reactContext, "Brightness error", Toast.LENGTH_SHORT).show()
     }
+    }
+  }
+  //set DefaultCameraVendorId to shared preferences
+  fun  setDefaultCameraVendorId(Int value){
+    //set the values to SharedPreferences
+    val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE) ?: return
+    with (sharedPref.edit()) {
+        putInt("defaultCameraVendorId", value)
+        commit()
     }
   }
 
