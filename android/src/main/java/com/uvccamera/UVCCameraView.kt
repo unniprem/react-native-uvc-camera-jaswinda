@@ -112,7 +112,6 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
                     deviceToSelect = deviceList[0]
 
                 }
-                Toast.makeText(reactContext, "Camera selected: ${deviceToSelect.deviceName} , Vendor ID: ${deviceToSelect.vendorId}", Toast.LENGTH_SHORT).show();
                 selectDevice(deviceToSelect)
             }
           } catch(e:Exception){
@@ -267,7 +266,7 @@ fun updateAspectRatio(width: Int, height: Int) {
     }
   }
   //set DefaultCameraVendorId to shared preferences
-  fun  setDefaultCameraVendorId(Int value){
+  fun  setDefaultCameraVendorId(value:Int){
     //set the values to SharedPreferences
     val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE) ?: return
     with (sharedPref.edit()) {
