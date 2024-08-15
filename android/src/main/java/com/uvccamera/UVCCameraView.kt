@@ -44,7 +44,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
       }
 
       override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        Toast.makeText(reactContext, "surfaceChanged", Toast.LENGTH_SHORT).show();
+        
       }
 
       override fun surfaceDestroyed(holder: SurfaceHolder) {
@@ -88,7 +88,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         size.width = width;
         size.height = height;
         size.fps = 25;
-        Toast.makeText(reactContext, "rotate camera error: ${size.width}x${size.height},type:${size.type}, fps:${size.fps}", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(reactContext, "rotate camera error: ${size.width}x${size.height},type:${size.type}, fps:${size.fps}", Toast.LENGTH_SHORT).show()
         Log.d(TAG, "previewSize: $size")
         previewSize = size
         mCameraViewMain.setAspectRatio(size.width, size.height)
@@ -117,7 +117,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
                 selectDevice(deviceToSelect)
             }
           } catch(e:Exception){
-            Toast.makeText(reactContext, "rotate camera error: $width, $height", Toast.LENGTH_SHORT).show()
+            // Toast.makeText(reactContext, "rotate camera error: $width, $height", Toast.LENGTH_SHORT).show()
           }
         }
         addSurface(mCameraViewMain.holder.surface, false)
@@ -230,7 +230,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
   // }
 
 fun updateAspectRatio(width: Int, height: Int) {
-    Toast.makeText(reactContext, "$width X $height", Toast.LENGTH_SHORT).show();
+    // Toast.makeText(reactContext, "$width X $height", Toast.LENGTH_SHORT).show();
    //set the values to SharedPreferences
     val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE) ?: return
     with (sharedPref.edit()) {
@@ -252,7 +252,7 @@ fun updateAspectRatio(width: Int, height: Int) {
      try{
        mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setMirror(MirrorMode.MIRROR_HORIZONTAL);
      } catch(e:Exception){
-       Toast.makeText(reactContext, "rotate camera error", Toast.LENGTH_SHORT).show()
+      //  Toast.makeText(reactContext, "rotate camera error", Toast.LENGTH_SHORT).show()
      }
     }
   }
@@ -263,7 +263,7 @@ fun updateAspectRatio(width: Int, height: Int) {
         control.brightnessPercent = value;
 
     } catch(e:Exception){
-      Toast.makeText(reactContext, "Brightness error", Toast.LENGTH_SHORT).show()
+      // Toast.makeText(reactContext, "Brightness error", Toast.LENGTH_SHORT).show()
     }
     }
   }
@@ -283,7 +283,7 @@ fun updateAspectRatio(width: Int, height: Int) {
         var control: UVCControl = mCameraHelper!!.uvcControl
         control.contrast = value;
       } catch (e: Exception) {
-        Toast.makeText(reactContext, "contrast error", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(reactContext, "contrast error", Toast.LENGTH_SHORT).show()
       }
     }
   }
@@ -293,7 +293,7 @@ fun updateAspectRatio(width: Int, height: Int) {
           var control: UVCControl = mCameraHelper!!.uvcControl
           control.hue = value;
         } catch(e:Exception){
-          Toast.makeText(reactContext, "Hue error", Toast.LENGTH_SHORT).show()
+          // Toast.makeText(reactContext, "Hue error", Toast.LENGTH_SHORT).show()
         }
       }
   }
@@ -303,7 +303,7 @@ fun updateAspectRatio(width: Int, height: Int) {
         var control: UVCControl = mCameraHelper!!.uvcControl
         control.saturation = value;
       } catch(e:Exception){
-        Toast.makeText(reactContext, "saturation error", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(reactContext, "saturation error", Toast.LENGTH_SHORT).show()
       }
     }
   }
@@ -313,7 +313,7 @@ fun updateAspectRatio(width: Int, height: Int) {
         var control: UVCControl = mCameraHelper!!.uvcControl
         control.saturation = value;
       } catch(e:Exception){
-        Toast.makeText(reactContext, "Sharpness error ", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(reactContext, "Sharpness error ", Toast.LENGTH_SHORT).show()
       }
     }
   }
@@ -332,9 +332,9 @@ fun updateAspectRatio(width: Int, height: Int) {
         //   // control.focusAuto = true;
         //   // startPreview()
         // }
-        Toast.makeText(reactContext, "Zoom value: $value", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(reactContext, "Zoom value: $value", Toast.LENGTH_SHORT).show()
       } catch(e:Exception){
-        Toast.makeText(reactContext, "Zoom error", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(reactContext, "Zoom error", Toast.LENGTH_SHORT).show()
       }
     }
   }
@@ -349,7 +349,7 @@ fun updateAspectRatio(width: Int, height: Int) {
         control.resetSaturation();
         control.resetSharpness();
       } catch(e:Exception){
-        Toast.makeText(reactContext, "reset error", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(reactContext, "reset error", Toast.LENGTH_SHORT).show()
       }
     }
   }
