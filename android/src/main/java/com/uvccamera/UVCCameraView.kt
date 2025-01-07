@@ -99,7 +99,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         startPreview()
         if(mCameraHelper!=null){
           try{
-            mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setRotation(180%360);
+            mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setRotation(360%360);
 
             if (deviceList != null && deviceList.isNotEmpty()) {
                 var deviceToSelect: UsbDevice = deviceList[0]
