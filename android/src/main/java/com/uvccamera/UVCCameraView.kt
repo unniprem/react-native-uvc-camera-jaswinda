@@ -78,7 +78,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
            // }
         }
         Log.d(TAG, "portraitSizeList: $portraitSizeList")
-        val size = portraitSizeList[0]
+        val size = portraitSizeList.last()
         //get the values from SharedPreferences
         val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE)
 
