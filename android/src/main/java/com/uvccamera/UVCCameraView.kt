@@ -9,11 +9,15 @@ import com.facebook.react.bridge.ReactContext
 import com.herohan.uvcapp.CameraHelper
 import com.herohan.uvcapp.ICameraHelper
 import com.serenegiant.usb.Size
-import com.serenegiant.usb.UVCCamera;
+import com.serenegiant.usb.UVCCamera
 import com.serenegiant.widget.AspectRatioSurfaceView
-import android.widget.Toast;
+import android.widget.Toast
 import com.serenegiant.usb.UVCControl
 import com.serenegiant.opengl.renderer.MirrorMode
+import android.hardware.usb.UsbManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
 
 const val TAG = "UVCCameraView"
 
@@ -21,12 +25,14 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
 
   companion object {
     private const val DEBUG = true
+    private const val ACTION_USB_PERMISSION = "com.uvccamera.USB_PERMISSION"
   }
-
 
   var mCameraHelper: ICameraHelper? = null
   private val mCameraViewMain: AspectRatioSurfaceView
-
+  private val usbManager: UsbManager by lazy {
+    context.getSystemService(Context.USB_SERVICE) as UsbManager
+  }
 
   private val reactContext: ReactContext
     get() = context as ReactContext
@@ -39,7 +45,6 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
       override fun surfaceCreated(holder: SurfaceHolder) {
         Log.d(TAG, "surfaceCreated() called with: holder = $holder")
         mCameraHelper?.addSurface(holder.surface, false)
-
         initCameraHelper()
       }
 
@@ -60,7 +65,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
   private val mStateListener: ICameraHelper.StateCallback = object : ICameraHelper.StateCallback {
     override fun onAttach(device: UsbDevice) {
       if (DEBUG) Log.v(TAG, "onAttach:")
-      selectDevice(device)
+      requestUsbPermission(device)
     }
 
     override fun onDeviceOpen(device: UsbDevice, isFirstOpen: Boolean) {
@@ -124,43 +129,6 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         addSurface(mCameraViewMain.holder.surface, false)
       }
     }
-
-    // override fun onCameraOpen(device: UsbDevice) {
-    //   if (DEBUG) Log.v(TAG, "onCameraOpen:")
-    //   mCameraHelper?.run {
-    //     mCameraViewMain.setRotation(180f)
-
-    //     val portraitSizeList = ArrayList<Size>()
-    //     for (size in supportedSizeList) {
-    //       // if (size.width < size.height) {
-    //         portraitSizeList.add(size)
-    //       // }
-    //     }
-
-    //     Log.d(TAG, "portraitSizeList: $portraitSizeList")
-    //     val size = portraitSizeList[0]
-    //     mCameraViewMain.setAspectRatio(size.width, size.height)
-    //     Log.d(TAG, "previewSize: $size")
-    //     previewSize = size
-    //     startPreview()
-
-    //     addSurface(mCameraViewMain.holder.surface, false)
-
-    //      val videoCaptureConfig = getVideoCaptureConfig()
-
-    //     if (videoCaptureConfig != null) {
-    //         setVideoCaptureConfig(
-    //             videoCaptureConfig
-    //                 // .setAudioCaptureEnable(false)
-    //                 .setBitRate((size.width * size.height * 25 * 0.15).toInt())
-    //                 .setVideoFrameRate(25)
-    //                 .setIFrameInterval(1)
-    //         )
-    //     }else{
-    //       Toast.makeText(reactContext, "videoCaptureConfig is null", Toast.LENGTH_SHORT).show();
-    //     }
-    //   }
-    // }
 
     override fun onCameraClose(device: UsbDevice) {
       if (DEBUG) Log.v(TAG, "onCameraClose:")
@@ -352,6 +320,39 @@ fun updateAspectRatio(width: Int, height: Int) {
       } catch(e:Exception){
         // Toast.makeText(reactContext, "reset error", Toast.LENGTH_SHORT).show()
       }
+    }
+  }
+
+  private fun requestUsbPermission(device: UsbDevice) {
+    if (usbManager.hasPermission(device)) {
+      selectDevice(device)
+      return
+    }
+
+    val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+    } else {
+      PendingIntent.FLAG_UPDATE_CURRENT
+    }
+
+    val permissionIntent = PendingIntent.getBroadcast(
+      context,
+      0,
+      Intent(ACTION_USB_PERMISSION),
+      flags
+    )
+
+    // For Android 13 and above, we need to explicitly request the permission
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      try {
+        usbManager.requestPermission(device, permissionIntent)
+      } catch (e: Exception) {
+        Log.e(TAG, "Error requesting USB permission: ${e.message}")
+        // Fallback to direct selection if permission request fails
+        selectDevice(device)
+      }
+    } else {
+      selectDevice(device)
     }
   }
 }
