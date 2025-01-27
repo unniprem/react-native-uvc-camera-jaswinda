@@ -5,6 +5,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.uimanager.UIManagerHelper
 import com.uvccamera.utils.withPromise
 import kotlinx.coroutines.CoroutineScope
@@ -32,48 +33,85 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   @ReactMethod
   fun openCamera(viewTag: Int) {
-    val view = findCameraView(viewTag)
-    view.openCamera()
+    UiThreadUtil.runOnUiThread {
+      try {
+        val view = findCameraView(viewTag)
+        view.openCamera()
+      } catch (e: Exception) {
+        Log.e(TAG, "Error opening camera: ${e.message}")
+      }
+    }
   }
 
   @ReactMethod
   fun closeCamera(viewTag: Int) {
-    val view = findCameraView(viewTag)
-    view.closeCamera()
+    UiThreadUtil.runOnUiThread {
+      try {
+        val view = findCameraView(viewTag)
+        view.closeCamera()
+      } catch (e: Exception) {
+        Log.e(TAG, "Error closing camera: ${e.message}")
+      }
+    }
   }
 
   @ReactMethod
   fun updateAspectRatio(viewTag: Int, width: Int, height: Int) {
-    val view = findCameraView(viewTag)
-    view.updateAspectRatio(width, height)
+    UiThreadUtil.runOnUiThread {
+      try {
+        val view = findCameraView(viewTag)
+        view.updateAspectRatio(width, height)
+      } catch (e: Exception) {
+        Log.e(TAG, "Error updating aspect ratio: ${e.message}")
+      }
+    }
   }
 
   @ReactMethod
   fun setCameraBright(viewTag: Int, brightness: Int) {
-    val view = findCameraView(viewTag)
-    view.setCameraBright(brightness)
+    UiThreadUtil.runOnUiThread {
+      try {
+        val view = findCameraView(viewTag)
+        view.setCameraBright(brightness)
+      } catch (e: Exception) {
+        Log.e(TAG, "Error setting brightness: ${e.message}")
+      }
+    }
   }
 
   @ReactMethod
   fun setZoom(viewTag: Int, zoom: Int) {
-    val view = findCameraView(viewTag)
-    view.setZoom(zoom)
+    UiThreadUtil.runOnUiThread {
+      try {
+        val view = findCameraView(viewTag)
+        view.setZoom(zoom)
+      } catch (e: Exception) {
+        Log.e(TAG, "Error setting zoom: ${e.message}")
+      }
+    }
   }
-
 
   @ReactMethod
   fun takePhoto(viewTag: Int, promise: Promise) {
-    coroutineScope.launch {
-      withPromise(promise) {
-        val view = findCameraView(viewTag)
-        view.takePhoto()
+    UiThreadUtil.runOnUiThread {
+      coroutineScope.launch {
+        withPromise(promise) {
+          val view = findCameraView(viewTag)
+          view.takePhoto()
+        }
       }
     }
   }
 
   @ReactMethod
   fun setDefaultCameraVendorId(viewTag: Int, vendorId: Int) {
-    val view = findCameraView(viewTag)
-    view.setDefaultCameraVendorId(vendorId)
+    UiThreadUtil.runOnUiThread {
+      try {
+        val view = findCameraView(viewTag)
+        view.setDefaultCameraVendorId(vendorId)
+      } catch (e: Exception) {
+        Log.e(TAG, "Error setting default vendor ID: ${e.message}")
+      }
+    }
   }
 }
