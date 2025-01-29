@@ -114,12 +114,19 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
   private val mStateListener: ICameraHelper.StateCallback = object : ICameraHelper.StateCallback {
     override fun onAttach(device: UsbDevice) {
       if (DEBUG) Log.v(TAG, "onAttach:")
-      requestUsbPermission(device)
+      // Request permission when device is attached
+      if (!usbManager.hasPermission(device)) {
+        requestUsbPermission(device)
+      } else {
+        selectDevice(device)
+      }
     }
 
     override fun onDeviceOpen(device: UsbDevice, isFirstOpen: Boolean) {
       if (DEBUG) Log.v(TAG, "onDeviceOpen:")
-      mCameraHelper?.openCamera()
+      if (isFirstOpen) {
+        mCameraHelper?.openCamera()
+      }
     }
 
     override fun onCameraOpen(device: UsbDevice) {
@@ -127,54 +134,16 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
       mCameraHelper?.run {
         val portraitSizeList = ArrayList<Size>()
         for (size in supportedSizeList) {
-          // if (size.width < size.height) {
-            portraitSizeList.add(size)
-           // }
+          portraitSizeList.add(size)
         }
         Log.d(TAG, "portraitSizeList: $portraitSizeList")
         val size = portraitSizeList.last()
-        //get the values from SharedPreferences
-        val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE)
-
-//         val width = sharedPref.getInt("width", 640)
-//         val height = sharedPref.getInt("height", 480)
-        // val width = sharedPref.getInt("width", 320)
-        // val height = sharedPref.getInt("height", 240)
-//        size.width = width;
-//        size.height = height;
-//        size.fps = 30;
-        // Toast.makeText(reactContext, "rotate camera error: ${size.width}x${size.height},type:${size.type}, fps:${size.fps}", Toast.LENGTH_SHORT).show()
+        
         Log.d(TAG, "previewSize: $size")
         previewSize = size
         mCameraViewMain.setAspectRatio(size.width, size.height)
-        var control: UVCControl = mCameraHelper!!.uvcControl
-        control.zoomRelative = 500;
-
+        
         startPreview()
-        if(mCameraHelper!=null){
-          try{
-            mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setRotation(360%360);
-
-            if (deviceList != null && deviceList.isNotEmpty()) {
-                var deviceToSelect: UsbDevice = deviceList[0]
-                for (device in deviceList) {
-                    val defaultCameraVendorId = sharedPref.getInt("defaultCameraVendorId", 3034)
-                    if (device.vendorId == defaultCameraVendorId) {
-                        deviceToSelect = device
-                        break
-                    }
-                }
-                if (deviceToSelect == null) {
-                    // No device with vendor ID 3034 found, select the first available device
-                    deviceToSelect = deviceList[0]
-
-                }
-                selectDevice(deviceToSelect)
-            }
-          } catch(e:Exception){
-            // Toast.makeText(reactContext, "rotate camera error: $width, $height", Toast.LENGTH_SHORT).show()
-          }
-        }
         addSurface(mCameraViewMain.holder.surface, false)
       }
     }
@@ -190,18 +159,45 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
 
     override fun onDetach(device: UsbDevice) {
       if (DEBUG) Log.v(TAG, "onDetach:")
+      unregisterPermissionReceiver()
     }
 
     override fun onCancel(device: UsbDevice) {
       if (DEBUG) Log.v(TAG, "onCancel:")
+      unregisterPermissionReceiver()
     }
-
-
   }
 
-  private fun selectDevice(device: UsbDevice) {
-    if (DEBUG) Log.v(TAG, "selectDevice:device=" + device.deviceName)
-    mCameraHelper?.selectDevice(device)
+  private fun requestUsbPermission(device: UsbDevice) {
+    if (usbManager.hasPermission(device)) {
+      selectDevice(device)
+      return
+    }
+
+    registerPermissionReceiver(device)
+
+    val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+    } else {
+      PendingIntent.FLAG_UPDATE_CURRENT
+    }
+
+    val permissionIntent = PendingIntent.getBroadcast(
+      reactContext,
+      0,
+      Intent(ACTION_USB_PERMISSION).apply {
+        addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY)
+        putExtra(UsbManager.EXTRA_DEVICE, device)
+      },
+      flags
+    )
+
+    try {
+      usbManager.requestPermission(device, permissionIntent)
+    } catch (e: Exception) {
+      Log.e(TAG, "Error requesting USB permission: ${e.message}")
+      selectDevice(device)
+    }
   }
 
   private fun initCameraHelper() {
@@ -209,6 +205,11 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
     mCameraHelper = CameraHelper().apply {
       setStateCallback(mStateListener)
     }
+  }
+
+  private fun selectDevice(device: UsbDevice) {
+    if (DEBUG) Log.v(TAG, "selectDevice:device=" + device.deviceName)
+    mCameraHelper?.selectDevice(device)
   }
 
   private fun clearCameraHelper() {
@@ -227,29 +228,9 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         }
       }
     }
-
-    // control.zoomAbsolute = 500;
-    // control.focusAuto = true;
   }
 
-  // fun openCamera() {
-  //   mCameraHelper?.run {
-  //     if (deviceList != null && deviceList.size > 0) {
-  //       if( deviceList.size > 1) {
-  //         selectDevice(deviceList[1])
-  //       } else {
-  //         selectDevice(deviceList[0])
-  //       }
-  //     }else{
-  //       //use default camera
-  //       selectDevice(null)
-  //     }
-  //   }
-  // }
-
-fun updateAspectRatio(width: Int, height: Int) {
-    // Toast.makeText(reactContext, "$width X $height", Toast.LENGTH_SHORT).show();
-   //set the values to SharedPreferences
+  fun updateAspectRatio(width: Int, height: Int) {
     val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE) ?: return
     with (sharedPref.edit()) {
         putInt("width", width)
@@ -369,39 +350,6 @@ fun updateAspectRatio(width: Int, height: Int) {
       } catch(e:Exception){
         // Toast.makeText(reactContext, "reset error", Toast.LENGTH_SHORT).show()
       }
-    }
-  }
-
-  private fun requestUsbPermission(device: UsbDevice) {
-    if (usbManager.hasPermission(device)) {
-      selectDevice(device)
-      return
-    }
-
-    // Register receiver before requesting permission
-    registerPermissionReceiver(device)
-
-    val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-    } else {
-      PendingIntent.FLAG_UPDATE_CURRENT
-    }
-
-    val permissionIntent = PendingIntent.getBroadcast(
-      reactContext,
-      0,
-      Intent(ACTION_USB_PERMISSION).apply {
-        addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY)
-      },
-      flags
-    )
-
-    try {
-      usbManager.requestPermission(device, permissionIntent)
-    } catch (e: Exception) {
-      Log.e(TAG, "Error requesting USB permission: ${e.message}")
-      // Fallback to direct selection if permission request fails
-      selectDevice(device)
     }
   }
 
