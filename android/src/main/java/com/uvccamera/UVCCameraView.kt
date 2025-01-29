@@ -95,6 +95,8 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
     }
 
     val filter = IntentFilter(ACTION_USB_PERMISSION)
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+    filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
     reactContext.registerReceiver(permissionReceiver, filter)
   }
 
@@ -386,9 +388,11 @@ fun updateAspectRatio(width: Int, height: Int) {
     }
 
     val permissionIntent = PendingIntent.getBroadcast(
-      context,
+      reactContext,
       0,
-      Intent(ACTION_USB_PERMISSION),
+      Intent(ACTION_USB_PERMISSION).apply {
+        addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY)
+      },
       flags
     )
 
