@@ -114,19 +114,12 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
   private val mStateListener: ICameraHelper.StateCallback = object : ICameraHelper.StateCallback {
     override fun onAttach(device: UsbDevice) {
       if (DEBUG) Log.v(TAG, "onAttach:")
-      // Request permission when device is attached
-      if (!usbManager.hasPermission(device)) {
-        requestUsbPermission(device)
-      } else {
-        selectDevice(device)
-      }
+      requestUsbPermission(device)
     }
 
     override fun onDeviceOpen(device: UsbDevice, isFirstOpen: Boolean) {
       if (DEBUG) Log.v(TAG, "onDeviceOpen:")
-      if (isFirstOpen) {
-        mCameraHelper?.openCamera()
-      }
+      mCameraHelper?.openCamera()
     }
 
     override fun onCameraOpen(device: UsbDevice) {
@@ -139,11 +132,38 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         Log.d(TAG, "portraitSizeList: $portraitSizeList")
         val size = portraitSizeList.last()
         
+        //get the values from SharedPreferences
+        val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE)
+
         Log.d(TAG, "previewSize: $size")
         previewSize = size
         mCameraViewMain.setAspectRatio(size.width, size.height)
-        
+        var control: UVCControl = mCameraHelper!!.uvcControl
+        control.zoomRelative = 500;
+
         startPreview()
+        if(mCameraHelper!=null){
+          try{
+            mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setRotation(360%360);
+
+            if (deviceList != null && deviceList.isNotEmpty()) {
+                var deviceToSelect: UsbDevice = deviceList[0]
+                for (device in deviceList) {
+                    val defaultCameraVendorId = sharedPref.getInt("defaultCameraVendorId", 3034)
+                    if (device.vendorId == defaultCameraVendorId) {
+                        deviceToSelect = device
+                        break
+                    }
+                }
+                if (deviceToSelect == null) {
+                    deviceToSelect = deviceList[0]
+                }
+                selectDevice(deviceToSelect)
+            }
+          } catch(e:Exception){
+            Log.e(TAG, "Error in camera setup: ${e.message}")
+          }
+        }
         addSurface(mCameraViewMain.holder.surface, false)
       }
     }
@@ -174,6 +194,17 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
       return
     }
 
+    // For newer Android versions, use the permission activity
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      val permissionIntent = Intent(context, UVCPermissionActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        putExtra(UVCPermissionActivity.EXTRA_DEVICE, device)
+      }
+      context.startActivity(permissionIntent)
+      return
+    }
+
+    // For older versions, use the traditional approach
     registerPermissionReceiver(device)
 
     val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -186,7 +217,6 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
       reactContext,
       0,
       Intent(ACTION_USB_PERMISSION).apply {
-        addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY)
         putExtra(UsbManager.EXTRA_DEVICE, device)
       },
       flags
