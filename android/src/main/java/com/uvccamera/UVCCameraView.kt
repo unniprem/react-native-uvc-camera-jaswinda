@@ -371,12 +371,6 @@ fun updateAspectRatio(width: Int, height: Int) {
   }
 
   private fun requestUsbPermission(device: UsbDevice) {
-    // For Android versions below 13, use the original behavior
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-      selectDevice(device)
-      return
-    }
-
     if (usbManager.hasPermission(device)) {
       selectDevice(device)
       return
@@ -402,7 +396,8 @@ fun updateAspectRatio(width: Int, height: Int) {
       usbManager.requestPermission(device, permissionIntent)
     } catch (e: Exception) {
       Log.e(TAG, "Error requesting USB permission: ${e.message}")
-      selectDevice(device)  // Fallback to original behavior
+      // Fallback to direct selection if permission request fails
+      selectDevice(device)
     }
   }
 
