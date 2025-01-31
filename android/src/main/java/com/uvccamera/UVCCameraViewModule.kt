@@ -23,6 +23,8 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
     Log.d(TAG, "Finding UVCCameraView with id: $viewId")
     
     val uiManager = UIManagerHelper.getUIManager(reactApplicationContext, viewId)
+    Log.d(TAG, "Finding UVCCameraView with id: $val")
+    
     if (uiManager == null) {
       Log.e(TAG, "Failed to get UIManager for viewId: $viewId")
       throw ViewNotFoundError(viewId)
