@@ -17,18 +17,28 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   override fun getName() = TAG
 
+
   private fun findCameraView(viewId: Int): UVCCameraView {
-    Log.d(TAG, "Finding view $viewId...")
-    val view = if (reactApplicationContext != null) {
-      UIManagerHelper.getUIManager(reactApplicationContext, viewId)
-        ?.resolveView(viewId) as UVCCameraView?
-    } else null
-    Log.d(
-      TAG,
-      if (reactApplicationContext != null) "Found view $viewId!" else "Couldn't find view $viewId!"
-    )
-    return view ?: throw ViewNotFoundError(viewId)
+    Log.d(TAG, "Finding UVCCameraView with id: $viewId")
+    
+    val uiManager = UIManagerHelper.getUIManager(reactApplicationContext, viewId)
+    if (uiManager == null) {
+      Log.e(TAG, "Failed to get UIManager for viewId: $viewId")
+      throw ViewNotFoundError(viewId)
+    }
+
+    val view = try {
+      uiManager.resolveView(viewId) as? UVCCameraView
+    } catch (e: Exception) {
+      Log.e(TAG, "Error resolving view $viewId: ${e.message}")
+      null
+    }
+
+    return view ?: throw ViewNotFoundError(viewId).also {
+      Log.e(TAG, "View with id $viewId is not a UVCCameraView")
+    }
   }
+
 
   @ReactMethod
   fun openCamera(viewTag: Int) {
