@@ -11,7 +11,6 @@ import com.uvccamera.utils.withPromise
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
   ReactContextBaseJavaModule(reactContext) {
@@ -19,32 +18,27 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   override fun getName() = TAG
 
-  private suspend fun findCameraView(viewId: Int): UVCCameraView = withContext(Dispatchers.Main) {
-    Log.d(TAG, "Finding UVCCameraView with id: $viewId")
+private fun findCameraView(viewId: Int): UVCCameraView {
+    Log.d(TAG, "Finding view $viewId...")
+    var view: UVCCameraView? = null
     
-    val uiManager = UIManagerHelper.getUIManager(reactApplicationContext, viewId)
-    Log.d(TAG, "Finding UVCCameraView with id: $uiManager")
+    UiThreadUtil.runOnUiThread {
+        view = if (reactApplicationContext != null) {
+            UIManagerHelper.getUIManager(reactApplicationContext, viewId)
+                ?.resolveView(viewId) as UVCCameraView?
+        } else null
+    }
     
-    if (uiManager == null) {
-      Log.e(TAG, "Failed to get UIManager for viewId: $viewId")
-      throw ViewNotFoundError(viewId)
-    }
-
-    val view = try {
-      uiManager.resolveView(viewId) as? UVCCameraView
-    } catch (e: Exception) {
-      Log.e(TAG, "Error resolving view $viewId: ${e.message}")
-      null
-    }
-
-    return@withContext view ?: throw ViewNotFoundError(viewId).also {
-      Log.e(TAG, "View with id $viewId is not a UVCCameraView")
-    }
-  }
+    Log.d(
+        TAG,
+        if (reactApplicationContext != null) "Found view $viewId!" else "Couldn't find view $viewId!"
+    )
+    return view ?: throw ViewNotFoundError(viewId)
+}
 
   @ReactMethod
   fun openCamera(viewTag: Int) {
-    coroutineScope.launch {
+    UiThreadUtil.runOnUiThread {
       try {
         val view = findCameraView(viewTag)
         view.openCamera()
@@ -56,7 +50,7 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   @ReactMethod
   fun closeCamera(viewTag: Int) {
-    coroutineScope.launch {
+    UiThreadUtil.runOnUiThread {
       try {
         val view = findCameraView(viewTag)
         view.closeCamera()
@@ -68,7 +62,7 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   @ReactMethod
   fun updateAspectRatio(viewTag: Int, width: Int, height: Int) {
-    coroutineScope.launch {
+    UiThreadUtil.runOnUiThread {
       try {
         val view = findCameraView(viewTag)
         view.updateAspectRatio(width, height)
@@ -80,7 +74,7 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   @ReactMethod
   fun setCameraBright(viewTag: Int, brightness: Int) {
-    coroutineScope.launch {
+    UiThreadUtil.runOnUiThread {
       try {
         val view = findCameraView(viewTag)
         view.setCameraBright(brightness)
@@ -92,7 +86,7 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   @ReactMethod
   fun setZoom(viewTag: Int, zoom: Int) {
-    coroutineScope.launch {
+    UiThreadUtil.runOnUiThread {
       try {
         val view = findCameraView(viewTag)
         view.setZoom(zoom)
@@ -104,17 +98,19 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   @ReactMethod
   fun takePhoto(viewTag: Int, promise: Promise) {
-    coroutineScope.launch {
-      withPromise(promise) {
-        val view = findCameraView(viewTag)
-        view.takePhoto()
+    UiThreadUtil.runOnUiThread {
+      coroutineScope.launch {
+        withPromise(promise) {
+          val view = findCameraView(viewTag)
+          view.takePhoto()
+        }
       }
     }
   }
 
   @ReactMethod
   fun setDefaultCameraVendorId(viewTag: Int, vendorId: Int) {
-    coroutineScope.launch {
+    UiThreadUtil.runOnUiThread {
       try {
         val view = findCameraView(viewTag)
         view.setDefaultCameraVendorId(vendorId)
@@ -122,9 +118,5 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
         Log.e(TAG, "Error setting default vendor ID: ${e.message}")
       }
     }
-  }
-
-  companion object {
-    private const val TAG = "UVCCameraViewModule"
   }
 }
