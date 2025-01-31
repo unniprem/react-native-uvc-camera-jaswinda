@@ -20,45 +20,33 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
     
     override fun getName() = TAG
 
-    private suspend fun findCameraView(viewId: Int): UVCCameraView {
-        return withContext(Dispatchers.Main) {
-            if (!UiThreadUtil.isOnUiThread()) {
-                UiThreadUtil.runOnUiThread {
-                    Log.d(TAG, "Switching to UI thread for view resolution")
-                }
-            }
+    private fun findCameraView(viewId: Int): UVCCameraView? {
+        if (!UiThreadUtil.isOnUiThread()) {
+            Log.e(TAG, "Not on UI thread")
+            return null
+        }
             
-            Log.d(TAG, "Finding UVCCameraView with id: $viewId")
-            
-            val uiManager = UIManagerHelper.getUIManager(reactApplicationContext, viewId)
-            if (uiManager == null) {
-                Log.e(TAG, "Failed to get UIManager for viewId: $viewId")
-                throw ViewNotFoundError(viewId)
-            }
-            
-            val view = try {
-                uiManager.resolveView(viewId) as? UVCCameraView
-            } catch (e: Exception) {
-                Log.e(TAG, "Error resolving view $viewId: ${e.message}")
-                null
-            }
-            
-            return@withContext view ?: throw ViewNotFoundError(viewId).also {
-                Log.e(TAG, "View with id $viewId is not a UVCCameraView")
-            }
+        Log.d(TAG, "Finding UVCCameraView with id: $viewId")
+        
+        val uiManager = UIManagerHelper.getUIManager(reactApplicationContext, viewId)
+        if (uiManager == null) {
+            Log.e(TAG, "Failed to get UIManager for viewId: $viewId")
+            return null
+        }
+        
+        return try {
+            uiManager.resolveView(viewId) as? UVCCameraView
+        } catch (e: Exception) {
+            Log.e(TAG, "Error resolving view $viewId: ${e.message}")
+            null
         }
     }
 
     @ReactMethod
     fun openCamera(viewTag: Int) {
-        coroutineScope.launch {
+        UiThreadUtil.runOnUiThread {
             try {
-                withContext(Dispatchers.Main) {
-                    UiThreadUtil.runOnUiThread {
-                        val view = findCameraView(viewTag)
-                        view.openCamera()
-                    }
-                }
+                findCameraView(viewTag)?.openCamera()
             } catch (e: Exception) {
                 Log.e(TAG, "Error opening camera: ${e.message}")
             }
@@ -67,14 +55,9 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
     @ReactMethod
     fun closeCamera(viewTag: Int) {
-        coroutineScope.launch {
+        UiThreadUtil.runOnUiThread {
             try {
-                withContext(Dispatchers.Main) {
-                    UiThreadUtil.runOnUiThread {
-                        val view = findCameraView(viewTag)
-                        view.closeCamera()
-                    }
-                }
+                findCameraView(viewTag)?.closeCamera()
             } catch (e: Exception) {
                 Log.e(TAG, "Error closing camera: ${e.message}")
             }
@@ -83,14 +66,9 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
     @ReactMethod
     fun updateAspectRatio(viewTag: Int, width: Int, height: Int) {
-        coroutineScope.launch {
+        UiThreadUtil.runOnUiThread {
             try {
-                withContext(Dispatchers.Main) {
-                    UiThreadUtil.runOnUiThread {
-                        val view = findCameraView(viewTag)
-                        view.updateAspectRatio(width, height)
-                    }
-                }
+                findCameraView(viewTag)?.updateAspectRatio(width, height)
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating aspect ratio: ${e.message}")
             }
@@ -99,14 +77,9 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
     @ReactMethod
     fun setCameraBright(viewTag: Int, brightness: Int) {
-        coroutineScope.launch {
+        UiThreadUtil.runOnUiThread {
             try {
-                withContext(Dispatchers.Main) {
-                    UiThreadUtil.runOnUiThread {
-                        val view = findCameraView(viewTag)
-                        view.setCameraBright(brightness)
-                    }
-                }
+                findCameraView(viewTag)?.setCameraBright(brightness)
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting brightness: ${e.message}")
             }
@@ -115,14 +88,9 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
     @ReactMethod
     fun setZoom(viewTag: Int, zoom: Int) {
-        coroutineScope.launch {
+        UiThreadUtil.runOnUiThread {
             try {
-                withContext(Dispatchers.Main) {
-                    UiThreadUtil.runOnUiThread {
-                        val view = findCameraView(viewTag)
-                        view.setZoom(zoom)
-                    }
-                }
+                findCameraView(viewTag)?.setZoom(zoom)
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting zoom: ${e.message}")
             }
@@ -131,28 +99,22 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
     @ReactMethod
     fun takePhoto(viewTag: Int, promise: Promise) {
-        coroutineScope.launch {
-            withPromise(promise) {
-                withContext(Dispatchers.Main) {
-                    UiThreadUtil.runOnUiThread {
-                        val view = findCameraView(viewTag)
-                        view.takePhoto()
-                    }
-                }
+        UiThreadUtil.runOnUiThread {
+            try {
+                val photo = findCameraView(viewTag)?.takePhoto()
+                promise.resolve(photo)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error taking photo: ${e.message}")
+                promise.reject("PHOTO_ERROR", e.message)
             }
         }
     }
 
     @ReactMethod
     fun setDefaultCameraVendorId(viewTag: Int, vendorId: Int) {
-        coroutineScope.launch {
+        UiThreadUtil.runOnUiThread {
             try {
-                withContext(Dispatchers.Main) {
-                    UiThreadUtil.runOnUiThread {
-                        val view = findCameraView(viewTag)
-                        view.setDefaultCameraVendorId(vendorId)
-                    }
-                }
+                findCameraView(viewTag)?.setDefaultCameraVendorId(vendorId)
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting default vendor ID: ${e.message}")
             }
