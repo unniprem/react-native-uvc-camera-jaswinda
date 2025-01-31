@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
     ReactContextBaseJavaModule(reactContext) {
     
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
     
     override fun getName() = TAG
 
@@ -99,12 +99,26 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
     @ReactMethod
     fun takePhoto(viewTag: Int, promise: Promise) {
-        UiThreadUtil.runOnUiThread {
+        coroutineScope.launch {
             try {
-                val photo = findCameraView(viewTag)?.takePhoto()
-                promise.resolve(photo)
+                UiThreadUtil.runOnUiThread {
+                    val view = findCameraView(viewTag)
+                    if (view != null) {
+                        coroutineScope.launch {
+                            try {
+                                val photo = view.takePhoto()
+                                promise.resolve(photo)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error taking photo: ${e.message}")
+                                promise.reject("PHOTO_ERROR", e.message)
+                            }
+                        }
+                    } else {
+                        promise.reject("VIEW_ERROR", "Camera view not found")
+                    }
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error taking photo: ${e.message}")
+                Log.e(TAG, "Error in takePhoto: ${e.message}")
                 promise.reject("PHOTO_ERROR", e.message)
             }
         }
