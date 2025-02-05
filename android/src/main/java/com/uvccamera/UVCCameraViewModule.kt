@@ -1,6 +1,8 @@
 package com.uvccamera
 
 import android.util.Log
+import android.os.Handler
+import android.os.Looper
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -14,62 +16,67 @@ import kotlinx.coroutines.launch
 class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
   ReactContextBaseJavaModule(reactContext) {
   private val coroutineScope = CoroutineScope(Dispatchers.Main)
+  private val mainHandler = Handler(Looper.getMainLooper())
 
   override fun getName() = TAG
 
-
   private fun findCameraView(viewId: Int): UVCCameraView {
     Log.d(TAG, "Finding UVCCameraView with id: $viewId")
-    
-    val uiManager = UIManagerHelper.getUIManager(reactApplicationContext, viewId)
-    if (uiManager == null) {
-      Log.e(TAG, "Failed to get UIManager for viewId: $viewId")
-      throw ViewNotFoundError(viewId)
-    }
 
-    val view = try {
+    val uiManager = UIManagerHelper.getUIManager(reactApplicationContext, viewId)
+      ?: throw ViewNotFoundError(viewId).also {
+        Log.e(TAG, "Failed to get UIManager for viewId: $viewId")
+      }
+
+    return (try {
       uiManager.resolveView(viewId) as? UVCCameraView
     } catch (e: Exception) {
       Log.e(TAG, "Error resolving view $viewId: ${e.message}")
       null
-    }
-
-    return view ?: throw ViewNotFoundError(viewId).also {
+    }) ?: throw ViewNotFoundError(viewId).also {
       Log.e(TAG, "View with id $viewId is not a UVCCameraView")
     }
   }
 
-
   @ReactMethod
   fun openCamera(viewTag: Int) {
-    val view = findCameraView(viewTag)
-    view.openCamera()
+    runOnUiThread {
+      val view = findCameraView(viewTag)
+      view.openCamera()
+    }
   }
 
   @ReactMethod
   fun closeCamera(viewTag: Int) {
-    val view = findCameraView(viewTag)
-    view.closeCamera()
+    runOnUiThread {
+      val view = findCameraView(viewTag)
+      view.closeCamera()
+    }
   }
 
   @ReactMethod
   fun updateAspectRatio(viewTag: Int, width: Int, height: Int) {
-    val view = findCameraView(viewTag)
-    view.updateAspectRatio(width, height)
+    runOnUiThread {
+      val view = findCameraView(viewTag)
+      view.updateAspectRatio(width, height)
+    }
   }
 
   @ReactMethod
   fun setCameraBright(viewTag: Int, brightness: Int) {
-    val view = findCameraView(viewTag)
-    view.setCameraBright(brightness)
+    runOnUiThread {
+      val view = findCameraView(viewTag)
+      view.setCameraBright(brightness)
+    }
   }
 
   @ReactMethod
   fun setZoom(viewTag: Int, zoom: Int) {
-    val view = findCameraView(viewTag)
-    view.setZoom(zoom)
+    runOnUiThread {
+      val view = findCameraView(viewTag)
+      view.setZoom(zoom)
+    }
   }
-
 
   @ReactMethod
   fun takePhoto(viewTag: Int, promise: Promise) {
@@ -83,7 +90,21 @@ class UVCCameraViewModule(reactContext: ReactApplicationContext?) :
 
   @ReactMethod
   fun setDefaultCameraVendorId(viewTag: Int, vendorId: Int) {
-    val view = findCameraView(viewTag)
-    view.setDefaultCameraVendorId(vendorId)
+    runOnUiThread {
+      val view = findCameraView(viewTag)
+      view.setDefaultCameraVendorId(vendorId)
+    }
+  }
+
+  private fun runOnUiThread(action: () -> Unit) {
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+      action()
+    } else {
+      mainHandler.post(action)
+    }
+  }
+
+  companion object {
+    private const val TAG = "UVCCameraViewModule"
   }
 }
