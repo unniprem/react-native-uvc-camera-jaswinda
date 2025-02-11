@@ -1,10 +1,10 @@
 import * as React from 'react';
-
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useRef } from 'react';
-import { Button, Dimensions, Image, StyleSheet, View } from 'react-native';
+import { useRef, useEffect } from 'react';
+import { Button, Dimensions, Image, StyleSheet, View, Alert } from 'react-native';
 import { UVCCamera } from '../../src/UVCCamera';
+import { PermissionsAndroid } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 
@@ -28,7 +28,6 @@ const HomePage = () => {
     <View style={styles.root}>
       <Button
         title="Open CameraView"
-        // @ts-ignore
         onPress={() => navigation.navigate('CameraPage')}
       />
     </View>
@@ -38,14 +37,46 @@ const HomePage = () => {
 const CameraPage = () => {
   const camera = useRef<UVCCamera>(null);
   const [picPath, setPicPath] = React.useState<string>();
+  
+  // Request camera permission when the component mounts
+  useEffect(() => {
+    const requestCameraPermission = async () => {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'This app needs access to your camera.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert("Camera permission denied");
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    };
+
+    requestCameraPermission();
+  }, []);
 
   const takePhoto = async () => {
+    if (!camera.current) {
+      Alert.alert("Camera is not initialized");
+      return;
+    }
+    
     try {
-      const photo = await camera.current!!.takePhoto();
+      const photo = await camera.current.takePhoto();
       setPicPath(photo.path);
       console.log('photo', photo);
     } catch (error) {
-      console.log('error', error);
+      console.log('Error taking photo:', error);
+      Alert.alert("Failed to take photo", error.message);
     }
   };
 

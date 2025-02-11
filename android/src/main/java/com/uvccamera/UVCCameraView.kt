@@ -44,7 +44,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
       }
 
       override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        
+
       }
 
       override fun surfaceDestroyed(holder: SurfaceHolder) {
@@ -75,19 +75,20 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         for (size in supportedSizeList) {
           // if (size.width < size.height) {
             portraitSizeList.add(size)
-          // }
+           // }
         }
         Log.d(TAG, "portraitSizeList: $portraitSizeList")
-        val size = portraitSizeList[0]
+        val size = portraitSizeList.last()
         //get the values from SharedPreferences
         val sharedPref = reactContext.getSharedPreferences("camera", Context.MODE_PRIVATE)
-        // val width = sharedPref.getInt("width", 2048)
-        // val height = sharedPref.getInt("height", 1536)
-        val width = sharedPref.getInt("width", 2592)
-        val height = sharedPref.getInt("height", 1944)
-        size.width = width;
-        size.height = height;
-        size.fps = 25;
+
+//         val width = sharedPref.getInt("width", 640)
+//         val height = sharedPref.getInt("height", 480)
+        // val width = sharedPref.getInt("width", 320)
+        // val height = sharedPref.getInt("height", 240)
+//        size.width = width;
+//        size.height = height;
+//        size.fps = 30;
         // Toast.makeText(reactContext, "rotate camera error: ${size.width}x${size.height},type:${size.type}, fps:${size.fps}", Toast.LENGTH_SHORT).show()
         Log.d(TAG, "previewSize: $size")
         previewSize = size
@@ -98,7 +99,7 @@ class UVCCameraView(context: Context) : FrameLayout(context) {
         startPreview()
         if(mCameraHelper!=null){
           try{
-            mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setRotation(180%360);
+            mCameraHelper?.previewConfig = mCameraHelper?.previewConfig?.setRotation(360%360);
 
             if (deviceList != null && deviceList.isNotEmpty()) {
                 var deviceToSelect: UsbDevice = deviceList[0]
